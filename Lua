@@ -1,4 +1,15 @@
 --[[
+
+
+╭╮╱╭╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭╮╱╱╱╭╮╱╭╮
+┃┃╱┃┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱┃┃╱┃┃
+┃┃╱┃┣━╮╭┳╮╭┳━━┳━┳━━┳━━┫┃╭━━┫┃╱┃┣╮
+┃┃╱┃┃╭╮╋┫╰╯┃┃━┫╭┫━━┫╭╮┣╯┃╭╮┃┃╱┃┣┫
+┃╰━╯┃┃┃┃┣╮╭┫┃━┫┃┣━━┃╭╮┣╮┃╰╯┃╰━╯┃┃
+╰━━━┻╯╰┻╯╰╯╰━━┻╯╰━━┻╯╰┻╯╰━╮┣━━━┻╯
+╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯
+
 https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua
 Script by seniorsword ( discord )
 good game!
@@ -200,4 +211,4 @@ ApplyJumpPower()
 ApplyPlayerFov()
 
 print("✅ Done!")
-print("Welcome to Universa! gUi")
+print("Welcome to Universa! gUi !!!!")
