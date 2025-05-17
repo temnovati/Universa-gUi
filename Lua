@@ -1,10 +1,8 @@
 --[[
-loadstring(game:HttpGet('https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua'))()
+https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua
 Script by seniorsword ( discord )
 good game!
 --]]
-
-
 
 local InsertService = game:GetService("InsertService")
 local Players = game:GetService("Players")
@@ -16,6 +14,7 @@ local Humanoid = Character:WaitForChild("Humanoid")
 
 local ReGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Dear-ReGui/main/ReGui.lua'))()
 local PrefabsId = "rbxassetid://" .. ReGui.PrefabsId
+
 
 ReGui:Init({
 	Prefabs = InsertService:LoadLocalAsset(PrefabsId)
@@ -123,3 +122,6 @@ ApplyJumpPower()
 game:GetService("UserInputService").JumpRequest:Connect(function()
 	workspace.Gravity = 196.2
 end)
+
+print("✅ Done!")
+print("Welcome")
