@@ -6,15 +6,17 @@ good game!
 
 local InsertService = game:GetService("InsertService")
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local Player = Players.LocalPlayer
-local Camera = game.Workspace.CurrentCamera
+local Camera = workspace.CurrentCamera
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 local ReGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Dear-ReGui/main/ReGui.lua'))()
 local PrefabsId = "rbxassetid://" .. ReGui.PrefabsId
-
 
 ReGui:Init({
 	Prefabs = InsertService:LoadLocalAsset(PrefabsId)
@@ -27,7 +29,7 @@ local Window = ReGui:TabsWindow({
 
 local MainTab = Window:CreateTab({ Name = "Main" })
 local OtherTab = Window:CreateTab({ Name = "Other" })
-local HumanoidHeader = MainTab:CollapsingHeader({ Title = "Humanoid" })
+local CharacterHeader = MainTab:CollapsingHeader({ Title = "Character control" })
 local CameraSettings = OtherTab:CollapsingHeader({ Title = "Camera settings" })
 local OtherScripts = OtherTab:CollapsingHeader({ Title = "Scripts" })
 
@@ -35,12 +37,9 @@ local OtherScripts = OtherTab:CollapsingHeader({ Title = "Scripts" })
 local WalkSpeedValue = 16
 local JumpPowerValue = 50
 local PlayerFOV = 70
-coroutine.wrap(function()
-    while true do
-        task.wait()
-        print(Character.HumanoidRootPart.position.Z)
-    end
-end)
+
+local flyEnabled = false
+local flySpeed = 50
 
 -- Functions to apply current values
 local function ApplyWalkSpeed()
@@ -56,14 +55,60 @@ local function ApplyJumpPower()
 end
 
 local function ApplyPlayerFov()
-    if Camera then
-        Camera.FieldOfView = PlayerFOV
-    end
+	if Camera then
+		Camera.FieldOfView = PlayerFOV
+	end
 end
 
+-- Fly logic
+local flyConnection
+local velocity = Vector3.new(0,0,0)
+
+local function EnableFly()
+	if flyConnection then return end
+	Humanoid.PlatformStand = true
+	flyConnection = RunService.Heartbeat:Connect(function(deltaTime)
+		if not flyEnabled then return end
+
+		local moveDirection = Vector3.new()
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDirection = moveDirection + Camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDirection = moveDirection - Camera.CFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDirection = moveDirection - Camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDirection = moveDirection + Camera.CFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			moveDirection = moveDirection + Vector3.new(0,1,0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			moveDirection = moveDirection - Vector3.new(0,1,0)
+		end
+
+		if moveDirection.Magnitude > 0 then
+			moveDirection = moveDirection.Unit * flySpeed
+		end
+
+		HumanoidRootPart.Velocity = moveDirection
+	end)
+end
+
+local function DisableFly()
+	if flyConnection then
+		flyConnection:Disconnect()
+		flyConnection = nil
+	end
+	Humanoid.PlatformStand = false
+	HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+end
 
 -- Sliders
-HumanoidHeader:SliderInt({
+CharacterHeader:SliderInt({
 	Label = "WalkSpeed",
 	Minimum = 16.0,
 	Maximum = 250.0,
@@ -74,7 +119,7 @@ HumanoidHeader:SliderInt({
 	end,
 })
 
-HumanoidHeader:SliderInt({
+CharacterHeader:SliderInt({
 	Label = "JumpPower",
 	Minimum = 50.0,
 	Maximum = 250.0,
@@ -84,6 +129,22 @@ HumanoidHeader:SliderInt({
 		ApplyJumpPower()
 	end,
 })
+
+-- Checkbox
+CharacterHeader:Checkbox({
+	Label = "Fly",
+	Value = false,
+
+    Callback = function(self, state)
+		flyEnabled = state
+		if flyEnabled then
+			EnableFly()
+		else
+			DisableFly()
+		end
+	end,
+})
+
 CameraSettings:SliderInt({
 	Label = "CameraFov",
 	Minimum = 70.0,
@@ -96,32 +157,36 @@ CameraSettings:SliderInt({
 })
 
 -- Buttons
-
 OtherScripts:Button({
-    Text = "Infinite yield",
-    Callback = function()
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-    end
+	Text = "Infinite yield",
+	Callback = function()
+		loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+	end
 })
 
 -- Respawn handling
 Player.CharacterAdded:Connect(function(newChar)
 	Character = newChar
 	Humanoid = newChar:WaitForChild("Humanoid")
+	HumanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
 
 	task.wait(0.5)
 
 	ApplyWalkSpeed()
 	ApplyJumpPower()
+	ApplyPlayerFov()
+
+	if flyEnabled then
+		EnableFly()
+	else
+		DisableFly()
+	end
 end)
 
--- Apply settings
+-- Apply settings initially
 ApplyWalkSpeed()
 ApplyJumpPower()
-
-game:GetService("UserInputService").JumpRequest:Connect(function()
-	workspace.Gravity = 196.2
-end)
+ApplyPlayerFov()
 
 print("✅ Done!")
-print("Welcome")
+print("Welcome to Universa! gUi")
