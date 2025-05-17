@@ -1,4 +1,16 @@
 --[[
+
+
+
+╭╮╱╭╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭╮╱╱╱╭╮╱╭╮
+┃┃╱┃┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱┃┃╱┃┃
+┃┃╱┃┣━╮╭┳╮╭┳━━┳━┳━━┳━━┫┃╭━━┫┃╱┃┣╮
+┃┃╱┃┃╭╮╋┫╰╯┃┃━┫╭┫━━┫╭╮┣╯┃╭╮┃┃╱┃┣┫
+┃╰━╯┃┃┃┃┣╮╭┫┃━┫┃┣━━┃╭╮┣╮┃╰╯┃╰━╯┃┃
+╰━━━┻╯╰┻╯╰╯╰━━┻╯╰━━┻╯╰┻╯╰━╮┣━━━┻╯
+╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯
+
 https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua
 Script by seniorsword ( discord )
 good game!
@@ -32,6 +44,7 @@ local OtherTab = Window:CreateTab({ Name = "Other" })
 local CharacterHeader = MainTab:CollapsingHeader({ Title = "Character control" })
 local CameraSettings = OtherTab:CollapsingHeader({ Title = "Camera settings" })
 local OtherScripts = OtherTab:CollapsingHeader({ Title = "Scripts" })
+local KeyBinds = OtherTab:CollapsingHeader({ Title = "Key binds" })
 
 -- Variables
 local WalkSpeedValue = 16
@@ -129,6 +142,16 @@ CharacterHeader:SliderInt({
 		ApplyJumpPower()
 	end,
 })
+-- Key binds
+
+KeyBinds:Keybind({
+	Label = "Cheat visiblity",
+	Value = Enum.KeyCode.P,
+	Callback = function(self, KeyId)
+		print(KeyId)
+		Window:ToggleVisibility()
+	end,
+})
 
 -- Checkbox
 CharacterHeader:Checkbox({
@@ -155,7 +178,7 @@ CameraSettings:SliderInt({
 		ApplyPlayerFov()
 	end,
 })
-
+-- 
 -- Buttons
 OtherScripts:Button({
 	Text = "Infinite yield",
@@ -189,4 +212,12 @@ ApplyJumpPower()
 ApplyPlayerFov()
 
 print("✅ Done!")
-print("Welcome to Universa! gUi")
+print("
+╭╮╱╭╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭╮╱╱╱╭╮╱╭╮
+┃┃╱┃┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱┃┃╱┃┃
+┃┃╱┃┣━╮╭┳╮╭┳━━┳━┳━━┳━━┫┃╭━━┫┃╱┃┣╮
+┃┃╱┃┃╭╮╋┫╰╯┃┃━┫╭┫━━┫╭╮┣╯┃╭╮┃┃╱┃┣┫
+┃╰━╯┃┃┃┃┣╮╭┫┃━┫┃┣━━┃╭╮┣╮┃╰╯┃╰━╯┃┃
+╰━━━┻╯╰┻╯╰╯╰━━┻╯╰━━┻╯╰┻╯╰━╮┣━━━┻╯
+╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯")
