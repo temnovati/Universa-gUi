@@ -2,7 +2,7 @@
 https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua
 Script by seniorsword ( discord )
 good game!
---]]
+]]
 
 local InsertService = game:GetService("InsertService")
 local Players = game:GetService("Players")
