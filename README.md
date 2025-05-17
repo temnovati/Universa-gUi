@@ -20,3 +20,4 @@ Copy and paste the following script into your Roblox executor:
 
 ```lua
 loadstring(game:HttpGet('https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua'))()
+```
