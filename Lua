@@ -1,4 +1,5 @@
 --[[
+https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua
 Script by seniorsword ( discord )
 good game!
 --]]
@@ -74,7 +75,7 @@ HumanoidHeader:SliderInt({
 	end,
 })
 
-HumanoidHeader:SliderFloat({
+HumanoidHeader:SliderInt({
 	Label = "JumpPower",
 	Minimum = 50.0,
 	Maximum = 250.0,
