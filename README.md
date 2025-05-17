@@ -5,4 +5,5 @@ but while it is in alpha,
 it is free 🔮!
 
 My discord is seniorsword
+
 Script: loadstring(game:HttpGet('https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua'))()
