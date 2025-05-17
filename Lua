@@ -1,0 +1,124 @@
+--[[
+Script by seniorsword ( discord )
+good game!
+--]]
+
+
+
+local InsertService = game:GetService("InsertService")
+local Players = game:GetService("Players")
+
+local Player = Players.LocalPlayer
+local Camera = game.Workspace.CurrentCamera
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local ReGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Dear-ReGui/main/ReGui.lua'))()
+local PrefabsId = "rbxassetid://" .. ReGui.PrefabsId
+
+ReGui:Init({
+	Prefabs = InsertService:LoadLocalAsset(PrefabsId)
+})
+
+local Window = ReGui:TabsWindow({
+	Title = "Universa! gUi",
+	Size = UDim2.fromOffset(350, 280)
+})
+
+local MainTab = Window:CreateTab({ Name = "Main" })
+local OtherTab = Window:CreateTab({ Name = "Other" })
+local HumanoidHeader = MainTab:CollapsingHeader({ Title = "Humanoid" })
+local CameraSettings = OtherTab:CollapsingHeader({ Title = "Camera settings" })
+local OtherScripts = OtherTab:CollapsingHeader({ Title = "Scripts" })
+
+-- Variables
+local WalkSpeedValue = 16
+local JumpPowerValue = 50
+local PlayerFOV = 70
+coroutine.wrap(function()
+    while true do
+        task.wait()
+        print(Character.HumanoidRootPart.position.Z)
+    end
+end)
+
+-- Functions to apply current values
+local function ApplyWalkSpeed()
+	if Humanoid and Humanoid.Parent then
+		Humanoid.WalkSpeed = WalkSpeedValue
+	end
+end
+
+local function ApplyJumpPower()
+	if Humanoid and Humanoid.Parent then
+		Humanoid.JumpPower = JumpPowerValue
+	end
+end
+
+local function ApplyPlayerFov()
+    if Camera then
+        Camera.FieldOfView = PlayerFOV
+    end
+end
+
+
+-- Sliders
+HumanoidHeader:SliderInt({
+	Label = "WalkSpeed",
+	Minimum = 16.0,
+	Maximum = 250.0,
+	Value = WalkSpeedValue,
+	Callback = function(v)
+		WalkSpeedValue = v.Value
+		ApplyWalkSpeed()
+	end,
+})
+
+HumanoidHeader:SliderFloat({
+	Label = "JumpPower",
+	Minimum = 50.0,
+	Maximum = 250.0,
+	Value = JumpPowerValue,
+	Callback = function(v)
+		JumpPowerValue = v.Value
+		ApplyJumpPower()
+	end,
+})
+CameraSettings:SliderInt({
+	Label = "CameraFov",
+	Minimum = 70.0,
+	Maximum = 120.0,
+	Value = PlayerFOV,
+	Callback = function(v)
+		PlayerFOV = v.Value
+		ApplyPlayerFov()
+	end,
+})
+
+-- Buttons
+
+OtherScripts:Button({
+    Text = "Infinite yield",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+    end
+})
+
+-- Respawn handling
+Player.CharacterAdded:Connect(function(newChar)
+	Character = newChar
+	Humanoid = newChar:WaitForChild("Humanoid")
+
+	task.wait(0.5)
+
+	ApplyWalkSpeed()
+	ApplyJumpPower()
+end)
+
+-- Apply settings
+ApplyWalkSpeed()
+ApplyJumpPower()
+
+game:GetService("UserInputService").JumpRequest:Connect(function()
+	workspace.Gravity = 196.2
+end)
