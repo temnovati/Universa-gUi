@@ -56,7 +56,7 @@ local SkeletonConnections = {
     }
 }
 
--- [[ ФУНКЦИЯ БЕЗОПАСНОГО ТЕЛЕПОРТА (BYPASS) ]]
+-- [[ ФУНКЦИЯ БЕЗОПАСНОГО ТЕЛЕПОРТА (FIXED ANCHOR) ]]
 local function SafeTeleport(targetCFrame)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -66,12 +66,22 @@ local function SafeTeleport(targetCFrame)
         local startCFrame = root.CFrame
         local steps = Options.TPSteps
         
+        -- Останавливаем флай, если он включен
         if root:FindFirstChild("FlyBV") then root.FlyBV.Velocity = Vector3.zero end
+        
+        -- Замораживаем игрока в воздухе
+        local wasAnchored = root.Anchored
+        root.Anchored = true
         
         for i = 1, steps do
             if not char or not char:FindFirstChild("HumanoidRootPart") then break end
             root.CFrame = startCFrame:Lerp(targetCFrame, i / steps)
             task.wait(Options.TPDelay)
+        end
+        
+        -- Возвращаем подвижность после телепорта
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.Anchored = wasAnchored
         end
     else
         root.CFrame = targetCFrame
@@ -80,7 +90,7 @@ end
 
 -- [[ ИНТЕРФЕЙС ]]
 local Window = Fluent:CreateWindow({
-    Title = "Universal PRO", SubTitle = "v23.0 | The Ultimate Hub",
+    Title = "Universal script", SubTitle = "Stable build v2",
     TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -344,4 +354,4 @@ Tabs.Settings:AddButton({Title = "СБРОСИТЬ ВСЕ НАСТРОЙКИ", C
 end})
 
 Window:SelectTab(1)
-SaveManager:SetLibrary(Fluent); SaveManager:SetFolder("UniversalConfigs_V23"); SaveManager:BuildConfigSection(Tabs.Settings); SaveManager:LoadAutoloadConfig()
+SaveManager:SetLibrary(Fluent); SaveManager:SetFolder("UniversalConfigs_V24"); SaveManager:BuildConfigSection(Tabs.Settings); SaveManager:LoadAutoloadConfig()
