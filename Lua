@@ -1,214 +1,350 @@
---[[
-
-
-╭╮╱╭╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭╮╱╱╱╭╮╱╭╮
-┃┃╱┃┃╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┃┃╱╱╱┃┃╱┃┃
-┃┃╱┃┣━╮╭┳╮╭┳━━┳━┳━━┳━━┫┃╭━━┫┃╱┃┣╮
-┃┃╱┃┃╭╮╋┫╰╯┃┃━┫╭┫━━┫╭╮┣╯┃╭╮┃┃╱┃┣┫
-┃╰━╯┃┃┃┃┣╮╭┫┃━┫┃┣━━┃╭╮┣╮┃╰╯┃╰━╯┃┃
-╰━━━┻╯╰┻╯╰╯╰━━┻╯╰━━┻╯╰┻╯╰━╮┣━━━┻╯
-╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
-╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯
-
-https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua
-Script by seniorsword ( discord )
-good game!
+-- [[ ССЫЛКА ДЛЯ ПЕРЕЗАПУСКА (ОБЯЗАТЕЛЬНО ЗАМЕНИ НА СВОЮ) ]]
+local HubLoadstring = [[
+    -- Сюда вставь loadstring своего скрипта, когда зальешь его на GitHub/Pastebin
+    -- loadstring(game:HttpGet("https://raw.githubusercontent.com/ТВОЙ_ПРОФИЛЬ/ТВОЙ_СКРИПТ.lua"))()
+    print("UI Загружен после телепорта!")
 ]]
 
-local InsertService = game:GetService("InsertService")
+local queue_tp = queue_on_teleport or queueonteleport or function() end
+
+-- [[ ЗАГРУЗКА БИБЛИОТЕК ]]
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+-- [[ СЕРВИСЫ И ПЕРЕМЕННЫЕ ]]
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 
-local Player = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
 
-local ReGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Dear-ReGui/main/ReGui.lua'))()
-local PrefabsId = "rbxassetid://" .. ReGui.PrefabsId
+local MapDefaults = {
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    ColorShift_Top = Lighting.ColorShift_Top
+}
 
-ReGui:Init({
-	Prefabs = InsertService:LoadLocalAsset(PrefabsId)
-})
+local Options = {
+    SpeedEnabled = false, SpeedValue = 16,
+    JumpEnabled = false, JumpValue = 50,
+    NoClip = false, 
+    Fly = false, FlyToolActive = false, FlySpeed = 50, FlySmoothness = 0.15,
+    FullBright = false, TargetPlayer = nil, ClickTP = false,
+    
+    GradualTP = false, TPSteps = 20, TPDelay = 0.05,
+    
+    ESP_Boxes = false, ESP_Tracers = false, ESP_Health = false, ESP_Distance = false, ESP_Skeleton = false,
+    ESPColor = Color3.fromRGB(255, 50, 50)
+}
 
-local Window = ReGui:TabsWindow({
-	Title = "Universa! gUi",
-	Size = UDim2.fromOffset(350, 280)
-})
+local Drawings = {}
+local Waypoints = {}
+local currentFlyVelocity = Vector3.zero
 
-local MainTab = Window:CreateTab({ Name = "Main" })
-local OtherTab = Window:CreateTab({ Name = "Other" })
-local CharacterHeader = MainTab:CollapsingHeader({ Title = "Character control" })
-local CameraSettings = OtherTab:CollapsingHeader({ Title = "Camera settings" })
-local OtherScripts = OtherTab:CollapsingHeader({ Title = "Scripts" })
-local KeyBinds = OtherTab:CollapsingHeader({ Title = "Key binds" })
+local SkeletonConnections = {
+    R6 = {{"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"}},
+    R15 = {
+        {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
+        {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
+        {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
+        {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
+        {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
+    }
+}
 
--- Variables
-local WalkSpeedValue = 16
-local JumpPowerValue = 50
-local PlayerFOV = 70
+-- [[ ФУНКЦИЯ БЕЗОПАСНОГО ТЕЛЕПОРТА (BYPASS) ]]
+local function SafeTeleport(targetCFrame)
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
-local flyEnabled = false
-local flySpeed = 50
-
--- Functions to apply current values
-local function ApplyWalkSpeed()
-	if Humanoid and Humanoid.Parent then
-		Humanoid.WalkSpeed = WalkSpeedValue
-	end
+    if Options.GradualTP then
+        local startCFrame = root.CFrame
+        local steps = Options.TPSteps
+        
+        if root:FindFirstChild("FlyBV") then root.FlyBV.Velocity = Vector3.zero end
+        
+        for i = 1, steps do
+            if not char or not char:FindFirstChild("HumanoidRootPart") then break end
+            root.CFrame = startCFrame:Lerp(targetCFrame, i / steps)
+            task.wait(Options.TPDelay)
+        end
+    else
+        root.CFrame = targetCFrame
+    end
 end
 
-local function ApplyJumpPower()
-	if Humanoid and Humanoid.Parent then
-		Humanoid.JumpPower = JumpPowerValue
-	end
+-- [[ ИНТЕРФЕЙС ]]
+local Window = Fluent:CreateWindow({
+    Title = "Universal PRO", SubTitle = "v23.0 | The Ultimate Hub",
+    TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Игрок", Icon = "user" }),
+    Teleport = Window:AddTab({ Title = "Телепорт", Icon = "map-pin" }),
+    Visuals = Window:AddTab({ Title = "Визуалы", Icon = "eye" }),
+    Settings = Window:AddTab({ Title = "Настройки", Icon = "settings" })
+}
+
+-- [[ ВКЛАДКА ИГРОК ]]
+Tabs.Main:AddToggle("EnableSpeed", {Title = "Использовать скорость", Default = false}):OnChanged(function(v) Options.SpeedEnabled = v end)
+Tabs.Main:AddSlider("SpeedSlider", {Title = "Скорость", Default = 16, Min = 16, Max = 300, Rounding = 0, Callback = function(v) Options.SpeedValue = v end})
+Tabs.Main:AddToggle("EnableJump", {Title = "Использовать прыжок", Default = false}):OnChanged(function(v) Options.JumpEnabled = v end)
+Tabs.Main:AddSlider("JumpSlider", {Title = "Прыжок", Default = 50, Min = 0, Max = 500, Rounding = 0, Callback = function(v) Options.JumpValue = v end})
+Tabs.Main:AddToggle("NoClip", {Title = "NoClip (Сквозь стены)", Default = false}):OnChanged(function(v) Options.NoClip = v end)
+
+Tabs.Main:AddSection("Полет")
+Tabs.Main:AddToggle("FlyToggle", {Title = "Включить полет", Default = false}):OnChanged(function(v) Options.Fly = v end)
+Tabs.Main:AddSlider("FlySpeed", {Title = "Скорость полета", Default = 50, Min = 10, Max = 300, Rounding = 0, Callback = function(v) Options.FlySpeed = v end})
+Tabs.Main:AddButton({Title = "Выдать Fly Tool", Callback = function()
+    local tool = Instance.new("Tool")
+    tool.Name = "Smooth Fly"; tool.RequiresHandle = false
+    tool.Equipped:Connect(function() Options.FlyToolActive = true; currentFlyVelocity = Vector3.zero end)
+    tool.Unequipped:Connect(function() Options.FlyToolActive = false end)
+    tool.Parent = LocalPlayer.Backpack
+end})
+
+-- [[ ВКЛАДКА ТЕЛЕПОРТ ]]
+Tabs.Teleport:AddSection("Anti-Cheat Bypass")
+Tabs.Teleport:AddToggle("GradualTP", {Title = "Постепенный ТП (Anti-Detect)", Default = false}):OnChanged(function(v) Options.GradualTP = v end)
+Tabs.Teleport:AddSlider("TPSteps", {Title = "Количество шагов", Default = 20, Min = 2, Max = 100, Rounding = 0, Callback = function(v) Options.TPSteps = v end})
+Tabs.Teleport:AddSlider("TPDelay", {Title = "Задержка между шагами", Default = 0.05, Min = 0.01, Max = 0.5, Rounding = 2, Callback = function(v) Options.TPDelay = v end})
+
+Tabs.Teleport:AddSection("Игроки")
+local PlayerDropdown = Tabs.Teleport:AddDropdown("PlayerDrop", {Title = "Выбор игрока", Values = {}, Multi = false, Default = nil})
+local function RefreshPlayers()
+    local names = {}
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(names, p.Name) end end
+    PlayerDropdown:SetValues(names)
 end
+Tabs.Teleport:AddButton({Title = "Обновить список", Callback = RefreshPlayers})
+PlayerDropdown:OnChanged(function(v) Options.TargetPlayer = v end)
+Tabs.Teleport:AddButton({Title = "ТП к выбранному игроку", Callback = function()
+    if Options.TargetPlayer then
+        local target = Players:FindFirstChild(Options.TargetPlayer)
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            SafeTeleport(target.Character.HumanoidRootPart.CFrame)
+        end
+    end
+end})
 
-local function ApplyPlayerFov()
-	if Camera then
-		Camera.FieldOfView = PlayerFOV
-	end
-end
+Tabs.Teleport:AddSection("Точки (Waypoints)")
+local WaypointNameInput = Tabs.Teleport:AddInput("WaypointName", {Title = "Название точки", Default = "", Placeholder = "База", Numeric = false, Finished = false})
+local WaypointDropdown = Tabs.Teleport:AddDropdown("WaypointDrop", {Title = "Выбрать точку", Values = {}, Multi = false, Default = nil})
 
--- Fly logic
-local flyConnection
-local velocity = Vector3.new(0,0,0)
+Tabs.Teleport:AddButton({Title = "Сохранить позицию", Callback = function()
+    local name = WaypointNameInput.Value
+    if name == "" then name = "Точка " .. (#Waypoints + 1) end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        table.insert(Waypoints, {Name = name, CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame})
+        local names = {}
+        for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end
+        WaypointDropdown:SetValues(names)
+    end
+end})
+Tabs.Teleport:AddButton({Title = "Телепорт к точке", Callback = function()
+    for _, wp in ipairs(Waypoints) do
+        if wp.Name == WaypointDropdown.Value then SafeTeleport(wp.CFrame); break end
+    end
+end})
+Tabs.Teleport:AddButton({Title = "Удалить точку", Callback = function()
+    for i, wp in ipairs(Waypoints) do
+        if wp.Name == WaypointDropdown.Value then table.remove(Waypoints, i); break end
+    end
+    local names = {}
+    for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end
+    WaypointDropdown:SetValues(names)
+end})
 
-local function EnableFly()
-	if flyConnection then return end
-	Humanoid.PlatformStand = true
-	flyConnection = RunService.Heartbeat:Connect(function(deltaTime)
-		if not flyEnabled then return end
-
-		local moveDirection = Vector3.new()
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-			moveDirection = moveDirection + Camera.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-			moveDirection = moveDirection - Camera.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-			moveDirection = moveDirection - Camera.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-			moveDirection = moveDirection + Camera.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-			moveDirection = moveDirection + Vector3.new(0,1,0)
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-			moveDirection = moveDirection - Vector3.new(0,1,0)
-		end
-
-		if moveDirection.Magnitude > 0 then
-			moveDirection = moveDirection.Unit * flySpeed
-		end
-
-		HumanoidRootPart.Velocity = moveDirection
-	end)
-end
-
-local function DisableFly()
-	if flyConnection then
-		flyConnection:Disconnect()
-		flyConnection = nil
-	end
-	Humanoid.PlatformStand = false
-	HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-end
-
--- Sliders
-CharacterHeader:SliderInt({
-	Label = "WalkSpeed",
-	Minimum = 16.0,
-	Maximum = 250.0,
-	Value = WalkSpeedValue,
-	Callback = function(v)
-		WalkSpeedValue = v.Value
-		ApplyWalkSpeed()
-	end,
-})
-
-CharacterHeader:SliderInt({
-	Label = "JumpPower",
-	Minimum = 50.0,
-	Maximum = 250.0,
-	Value = JumpPowerValue,
-	Callback = function(v)
-		JumpPowerValue = v.Value
-		ApplyJumpPower()
-	end,
-})
--- Key binds
-
-KeyBinds:Keybind({
-	Label = "Cheat visiblity",
-	Value = Enum.KeyCode.P,
-	Callback = function(self, KeyId)
-		print(KeyId)
-		Window:ToggleVisibility()
-	end,
-})
-
--- Checkbox
-CharacterHeader:Checkbox({
-	Label = "Fly",
-	Value = false,
-
-    Callback = function(self, state)
-		flyEnabled = state
-		if flyEnabled then
-			EnableFly()
-		else
-			DisableFly()
-		end
-	end,
-})
-
-CameraSettings:SliderInt({
-	Label = "CameraFov",
-	Minimum = 70.0,
-	Maximum = 120.0,
-	Value = PlayerFOV,
-	Callback = function(v)
-		PlayerFOV = v.Value
-		ApplyPlayerFov()
-	end,
-})
--- 
--- Buttons
-OtherScripts:Button({
-	Text = "Infinite yield",
-	Callback = function()
-		loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-	end
-})
-
--- Respawn handling
-Player.CharacterAdded:Connect(function(newChar)
-	Character = newChar
-	Humanoid = newChar:WaitForChild("Humanoid")
-	HumanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
-
-	task.wait(0.5)
-
-	ApplyWalkSpeed()
-	ApplyJumpPower()
-	ApplyPlayerFov()
-
-	if flyEnabled then
-		EnableFly()
-	else
-		DisableFly()
-	end
+Tabs.Teleport:AddSection("Click TP")
+Tabs.Teleport:AddToggle("ClickTP", {Title = "Click TP Tool", Default = false}):OnChanged(function(v)
+    Options.ClickTP = v
+    if v then
+        local tool = Instance.new("Tool", LocalPlayer.Backpack)
+        tool.Name = "Click TP"; tool.RequiresHandle = false
+        tool.Activated:Connect(function()
+            local mouse = LocalPlayer:GetMouse()
+            if mouse.Target then SafeTeleport(CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))) end
+        end)
+    else
+        for _, t in pairs(LocalPlayer.Backpack:GetChildren()) do if t.Name == "Click TP" then t:Destroy() end end
+        if LocalPlayer.Character then for _, t in pairs(LocalPlayer.Character:GetChildren()) do if t.Name == "Click TP" then t:Destroy() end end end
+    end
 end)
 
--- Apply settings initially
-ApplyWalkSpeed()
-ApplyJumpPower()
-ApplyPlayerFov()
+-- [[ ВКЛАДКА ВИЗУАЛЫ ]]
+Tabs.Visuals:AddToggle("Boxes", {Title = "ESP Boxes", Default = false}):OnChanged(function(v) Options.ESP_Boxes = v end)
+Tabs.Visuals:AddToggle("Skeleton", {Title = "ESP Skeleton", Default = false}):OnChanged(function(v) Options.ESP_Skeleton = v end)
+Tabs.Visuals:AddToggle("Tracers", {Title = "ESP Tracers", Default = false}):OnChanged(function(v) Options.ESP_Tracers = v end)
+Tabs.Visuals:AddToggle("Health", {Title = "ESP Здоровье", Default = false}):OnChanged(function(v) Options.ESP_Health = v end)
+Tabs.Visuals:AddToggle("Distance", {Title = "ESP Дистанция", Default = false}):OnChanged(function(v) Options.ESP_Distance = v end)
+Tabs.Visuals:AddColorpicker("ESPColor", {Title = "Глобальный цвет ESP", Default = Color3.fromRGB(255, 50, 50)}):OnChanged(function(c) Options.ESPColor = c end)
+Tabs.Visuals:AddToggle("FullBright", {Title = "FullBright", Default = false}):OnChanged(function(v) Options.FullBright = v end)
 
-print("✅ Done!")
-print("Welcome to Universa! gUi !!!!")
+-- [[ ЛОГИКА DRAWING ESP ]]
+local function CreateDrawing(type, props)
+    local obj = Drawing.new(type)
+    for k, v in pairs(props) do obj[k] = v end
+    return obj
+end
+
+local function GetBoundingBox(char)
+    local cf, size = char:GetBoundingBox()
+    local corners = {
+        cf * CFrame.new(size.X/2, size.Y/2, size.Z/2).Position, cf * CFrame.new(-size.X/2, size.Y/2, size.Z/2).Position,
+        cf * CFrame.new(size.X/2, -size.Y/2, size.Z/2).Position, cf * CFrame.new(-size.X/2, -size.Y/2, size.Z/2).Position,
+        cf * CFrame.new(size.X/2, size.Y/2, -size.Z/2).Position, cf * CFrame.new(-size.X/2, size.Y/2, -size.Z/2).Position,
+        cf * CFrame.new(size.X/2, -size.Y/2, -size.Z/2).Position, cf * CFrame.new(-size.X/2, -size.Y/2, -size.Z/2).Position
+    }
+    local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+    local vis = false
+    for _, corner in ipairs(corners) do
+        local screenPos, onScreen = Camera:WorldToViewportPoint(corner)
+        if onScreen then vis = true end
+        minX, minY = math.min(minX, screenPos.X), math.min(minY, screenPos.Y)
+        maxX, maxY = math.max(maxX, screenPos.X), math.max(maxY, screenPos.Y)
+    end
+    if vis then return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY) end
+    return nil, nil
+end
+
+local function UpdateESP(player)
+    if not Drawings[player] then
+        Drawings[player] = {
+            Box = CreateDrawing("Square", {Visible = false, Thickness = 1, Filled = false}),
+            Tracer = CreateDrawing("Line", {Visible = false, Thickness = 1}),
+            HealthText = CreateDrawing("Text", {Visible = false, Size = 14, Center = true, Outline = true}),
+            DistText = CreateDrawing("Text", {Visible = false, Size = 14, Center = true, Outline = true, Color = Color3.fromRGB(255, 255, 255)}),
+            Bones = {}
+        }
+        for i = 1, 15 do table.insert(Drawings[player].Bones, CreateDrawing("Line", {Visible = false, Thickness = 1})) end
+    end
+    
+    local d = Drawings[player]
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    if char and root and hum and player ~= LocalPlayer and hum.Health > 0 then
+        local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+        local dist = (root.Position - Camera.CFrame.Position).Magnitude
+        
+        if onScreen then
+            if Options.ESP_Boxes then
+                local pos, size = GetBoundingBox(char)
+                if pos and size then d.Box.Size = size; d.Box.Position = pos; d.Box.Color = Options.ESPColor; d.Box.Visible = true else d.Box.Visible = false end
+            else d.Box.Visible = false end
+            
+            if Options.ESP_Skeleton then
+                local connections = SkeletonConnections[hum.RigType.Name] or SkeletonConnections.R6
+                for i, bone in ipairs(d.Bones) do
+                    local conn = connections[i]
+                    if conn then
+                        local p1, p2 = char:FindFirstChild(conn[1]), char:FindFirstChild(conn[2])
+                        if p1 and p2 then
+                            local s1, vis1 = Camera:WorldToViewportPoint(p1.Position); local s2, vis2 = Camera:WorldToViewportPoint(p2.Position)
+                            if vis1 or vis2 then bone.From = Vector2.new(s1.X, s1.Y); bone.To = Vector2.new(s2.X, s2.Y); bone.Color = Options.ESPColor; bone.Visible = true else bone.Visible = false end
+                        else bone.Visible = false end
+                    else bone.Visible = false end
+                end
+            else for _, bone in ipairs(d.Bones) do bone.Visible = false end end
+            
+            if Options.ESP_Tracers then d.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); d.Tracer.To = Vector2.new(rootPos.X, rootPos.Y); d.Tracer.Color = Options.ESPColor; d.Tracer.Visible = true else d.Tracer.Visible = false end
+            if Options.ESP_Health then d.HealthText.Text = math.floor(hum.Health).." HP"; d.HealthText.Position = Vector2.new(rootPos.X, rootPos.Y - (2800/dist) - 15); d.HealthText.Color = Color3.fromRGB(255 - (hum.Health/hum.MaxHealth*255), hum.Health/hum.MaxHealth*255, 0); d.HealthText.Visible = true else d.HealthText.Visible = false end
+            if Options.ESP_Distance then d.DistText.Text = math.floor(dist).."m"; d.DistText.Position = Vector2.new(rootPos.X, rootPos.Y + (2800/dist)); d.DistText.Visible = true else d.DistText.Visible = false end
+        else
+            d.Box.Visible = false; d.Tracer.Visible = false; d.HealthText.Visible = false; d.DistText.Visible = false
+            for _, bone in ipairs(d.Bones) do bone.Visible = false end
+        end
+    else
+        d.Box.Visible = false; d.Tracer.Visible = false; d.HealthText.Visible = false; d.DistText.Visible = false
+        for _, bone in ipairs(d.Bones) do bone.Visible = false end
+    end
+end
+
+RunService.RenderStepped:Connect(function() for _, p in pairs(Players:GetPlayers()) do UpdateESP(p) end end)
+Players.PlayerRemoving:Connect(function(p)
+    if Drawings[p] then
+        Drawings[p].Box:Remove(); Drawings[p].Tracer:Remove(); Drawings[p].HealthText:Remove(); Drawings[p].DistText:Remove()
+        for _, b in ipairs(Drawings[p].Bones) do b:Remove() end; Drawings[p] = nil
+    end
+end)
+
+-- [[ ГЛАВНЫЙ ЦИКЛ ]]
+RunService.Stepped:Connect(function()
+    local Char = LocalPlayer.Character
+    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    
+    if Hum then
+        Hum.WalkSpeed = Options.SpeedEnabled and Options.SpeedValue or 16
+        if Options.JumpEnabled then Hum.UseJumpPower = true; Hum.JumpPower = Options.JumpValue; Hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true) else Hum.JumpPower = 50 end
+    end
+    if Char and Options.NoClip then for _, part in pairs(Char:GetDescendants()) do if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end end end
+    
+    local isFlying = Options.Fly or Options.FlyToolActive
+    if Root then
+        local bv = Root:FindFirstChild("FlyBV")
+        if isFlying then
+            if not bv then bv = Instance.new("BodyVelocity"); bv.Name = "FlyBV"; bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge); bv.Parent = Root end
+            local Cam = workspace.CurrentCamera; local Dir = Vector3.zero
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then Dir += Cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then Dir -= Cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then Dir -= Cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then Dir += Cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then Dir += Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then Dir -= Vector3.new(0,1,0) end
+            currentFlyVelocity = currentFlyVelocity:Lerp(Dir * Options.FlySpeed, Options.FlySmoothness); bv.Velocity = currentFlyVelocity
+        else if bv then bv:Destroy() end end
+    end
+    
+    if Options.FullBright then
+        Lighting.Ambient = Color3.new(1, 1, 1); Lighting.OutdoorAmbient = Color3.new(1, 1, 1); Lighting.ColorShift_Bottom = Color3.new(1, 1, 1); Lighting.ColorShift_Top = Color3.new(1, 1, 1)
+    else
+        Lighting.Ambient = MapDefaults.Ambient; Lighting.OutdoorAmbient = MapDefaults.OutdoorAmbient; Lighting.ColorShift_Bottom = MapDefaults.ColorShift_Bottom; Lighting.ColorShift_Top = MapDefaults.ColorShift_Top
+    end
+end)
+
+-- [[ НАСТРОЙКИ И СЕРВЕР ]]
+Tabs.Settings:AddSection("Инструменты")
+Tabs.Settings:AddButton({Title = "Запустить Dark Dex V4", Callback = function()
+    loadstring(game:HttpGet("https://gist.githubusercontent.com/dannythehacker/1781582ab545302f2b34afc4ec53e811/raw/ee5324771f017073fc30e640323ac2a9b3bfc550/dark%2520dex%2520v4"))()
+end})
+
+Tabs.Settings:AddSection("Управление сервером")
+Tabs.Settings:AddButton({Title = "Rejoin (Перезайти на этот же сервер)", Callback = function() 
+    queue_tp(HubLoadstring)
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) 
+end})
+
+Tabs.Settings:AddButton({Title = "Server Hop (Сменить сервер на другой)", Callback = function()
+    Fluent:Notify({Title = "Server Hop", Content = "Поиск сервера...", Duration = 3})
+    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    pcall(function()
+        local data = HttpService:JSONDecode(game:HttpGet(url))
+        for _, server in ipairs(data.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                queue_tp(HubLoadstring)
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer); break
+            end
+        end
+    end)
+end})
+
+Tabs.Settings:AddSection("Сброс")
+Tabs.Settings:AddButton({Title = "СБРОСИТЬ ВСЕ НАСТРОЙКИ", Callback = function()
+    Options.SpeedEnabled = false; Options.JumpEnabled = false; Options.Fly = false; Options.FlyToolActive = false; Options.GradualTP = false
+    Options.NoClip = false; Options.ESP_Boxes = false; Options.ESP_Tracers = false; Options.ESP_Health = false; Options.ESP_Distance = false; Options.ESP_Skeleton = false
+    Fluent:Notify({Title = "System", Content = "Всё отключено", Duration = 3})
+end})
+
+Window:SelectTab(1)
+SaveManager:SetLibrary(Fluent); SaveManager:SetFolder("UniversalConfigs_V23"); SaveManager:BuildConfigSection(Tabs.Settings); SaveManager:LoadAutoloadConfig()
