@@ -1,8 +1,5 @@
--- [[ ССЫЛКА ДЛЯ ПЕРЕЗАПУСКА (ОБЯЗАТЕЛЬНО ЗАМЕНИ НА СВОЮ) ]]
 local HubLoadstring = [[
-    -- Сюда вставь loadstring своего скрипта, когда зальешь его на GitHub/Pastebin
-    -- loadstring(game:HttpGet("https://raw.githubusercontent.com/ТВОЙ_ПРОФИЛЬ/ТВОЙ_СКРИПТ.lua"))()
-    print("UI Загружен после телепорта!")
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua'))()
 ]]
 
 local queue_tp = queue_on_teleport or queueonteleport or function() end
