@@ -1,13 +1,14 @@
+-- [[ ССЫЛКА ДЛЯ ПЕРЕЗАПУСКА ПРИ SERVER HOP / REJOIN ]]
 local HubLoadstring = [[
     loadstring(game:HttpGet('https://raw.githubusercontent.com/temnovati/Universa-gUi/refs/heads/main/Lua'))()
 ]]
 
 local queue_tp = queue_on_teleport or queueonteleport or function() end
 
--- [[ ЗАГРУЗКА БИБЛИОТЕК ]]
-local Fluent, SaveManager, InterfaceManager = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+-- [[ ЗАГРУЗКА БИБЛИОТЕК (FluentPlus) ]]
+local Fluent, SaveManager, InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
 
--- [[ СЕРВИСЫ И ПЕРЕМЕННЫЕ ]]
+-- [[ СЕРВИСЫ ]]
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -15,26 +16,19 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 local MapDefaults = {
-    Ambient = Lighting.Ambient,
-    OutdoorAmbient = Lighting.OutdoorAmbient,
-    ColorShift_Bottom = Lighting.ColorShift_Bottom,
-    ColorShift_Top = Lighting.ColorShift_Top
+    Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom, ColorShift_Top = Lighting.ColorShift_Top
 }
 
 local Options = {
-    SpeedEnabled = false, SpeedValue = 16,
-    JumpEnabled = false, JumpValue = 50,
-    NoClip = false, 
-    Fly = false, FlyToolActive = false, FlySpeed = 50, FlySmoothness = 0.15,
+    SpeedEnabled = false, SpeedValue = 16, JumpEnabled = false, JumpValue = 50,
+    NoClip = false, Fly = false, FlyToolActive = false, FlySpeed = 50, FlySmoothness = 0.15,
     FullBright = false, TargetPlayer = nil, ClickTP = false,
-    
     GradualTP = false, TPSteps = 20, TPDelay = 0.05,
-    
     ESP_Boxes = false, ESP_Tracers = false, ESP_Health = false, ESP_Distance = false, ESP_Skeleton = false,
     ESPColor = Color3.fromRGB(255, 50, 50)
 }
@@ -54,33 +48,21 @@ local SkeletonConnections = {
     }
 }
 
--- [[ ФУНКЦИЯ БЕЗОПАСНОГО ТЕЛЕПОРТА (FIXED ANCHOR) ]]
 local function SafeTeleport(targetCFrame)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return end
-
     if Options.GradualTP then
         local startCFrame = root.CFrame
-        local steps = Options.TPSteps
-        
-        -- Останавливаем флай, если он включен
         if root:FindFirstChild("FlyBV") then root.FlyBV.Velocity = Vector3.zero end
-        
-        -- Замораживаем игрока в воздухе
         local wasAnchored = root.Anchored
         root.Anchored = true
-        
-        for i = 1, steps do
+        for i = 1, Options.TPSteps do
             if not char or not char:FindFirstChild("HumanoidRootPart") then break end
-            root.CFrame = startCFrame:Lerp(targetCFrame, i / steps)
+            root.CFrame = startCFrame:Lerp(targetCFrame, i / Options.TPSteps)
             task.wait(Options.TPDelay)
         end
-        
-        -- Возвращаем подвижность после телепорта
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.Anchored = wasAnchored
-        end
+        if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.Anchored = wasAnchored end
     else
         root.CFrame = targetCFrame
     end
@@ -88,7 +70,7 @@ end
 
 -- [[ ИНТЕРФЕЙС ]]
 local Window = Fluent:CreateWindow({
-    Title = "Universal script", SubTitle = "Stable build v2",
+    Title = "Universal PRO", SubTitle = "v26.0 | FluentPlus & DevTools",
     TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -110,11 +92,9 @@ Tabs.Main:AddSection("Полет")
 Tabs.Main:AddToggle("FlyToggle", {Title = "Включить полет", Default = false}):OnChanged(function(v) Options.Fly = v end)
 Tabs.Main:AddSlider("FlySpeed", {Title = "Скорость полета", Default = 50, Min = 10, Max = 300, Rounding = 0, Callback = function(v) Options.FlySpeed = v end})
 Tabs.Main:AddButton({Title = "Выдать Fly Tool", Callback = function()
-    local tool = Instance.new("Tool")
-    tool.Name = "Smooth Fly"; tool.RequiresHandle = false
+    local tool = Instance.new("Tool"); tool.Name = "Smooth Fly"; tool.RequiresHandle = false
     tool.Equipped:Connect(function() Options.FlyToolActive = true; currentFlyVelocity = Vector3.zero end)
-    tool.Unequipped:Connect(function() Options.FlyToolActive = false end)
-    tool.Parent = LocalPlayer.Backpack
+    tool.Unequipped:Connect(function() Options.FlyToolActive = false end); tool.Parent = LocalPlayer.Backpack
 end})
 
 -- [[ ВКЛАДКА ТЕЛЕПОРТ ]]
@@ -124,61 +104,41 @@ Tabs.Teleport:AddSlider("TPSteps", {Title = "Количество шагов", D
 Tabs.Teleport:AddSlider("TPDelay", {Title = "Задержка между шагами", Default = 0.05, Min = 0.01, Max = 0.5, Rounding = 2, Callback = function(v) Options.TPDelay = v end})
 
 Tabs.Teleport:AddSection("Игроки")
-local PlayerDropdown = Tabs.Teleport:AddDropdown("PlayerDrop", {Title = "Выбор игрока", Values = {}, Multi = false, Default = nil})
-local function RefreshPlayers()
-    local names = {}
-    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(names, p.Name) end end
-    PlayerDropdown:SetValues(names)
-end
-Tabs.Teleport:AddButton({Title = "Обновить список", Callback = RefreshPlayers})
+local PlayerDropdown = Tabs.Teleport:AddDropdown("PlayerDrop", {Title = "Выбор игрока", Values = {}, Multi = false})
+Tabs.Teleport:AddButton({Title = "Обновить список", Callback = function()
+    local names = {}; for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(names, p.Name) end end; PlayerDropdown:SetValues(names)
+end})
 PlayerDropdown:OnChanged(function(v) Options.TargetPlayer = v end)
 Tabs.Teleport:AddButton({Title = "ТП к выбранному игроку", Callback = function()
     if Options.TargetPlayer then
-        local target = Players:FindFirstChild(Options.TargetPlayer)
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            SafeTeleport(target.Character.HumanoidRootPart.CFrame)
-        end
+        local t = Players:FindFirstChild(Options.TargetPlayer)
+        if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then SafeTeleport(t.Character.HumanoidRootPart.CFrame) end
     end
 end})
 
 Tabs.Teleport:AddSection("Точки (Waypoints)")
-local WaypointNameInput = Tabs.Teleport:AddInput("WaypointName", {Title = "Название точки", Default = "", Placeholder = "База", Numeric = false, Finished = false})
-local WaypointDropdown = Tabs.Teleport:AddDropdown("WaypointDrop", {Title = "Выбрать точку", Values = {}, Multi = false, Default = nil})
-
+local WaypointNameInput = Tabs.Teleport:AddInput("WaypointName", {Title = "Название точки", Default = "", Placeholder = "База"})
+local WaypointDropdown = Tabs.Teleport:AddDropdown("WaypointDrop", {Title = "Выбрать точку", Values = {}, Multi = false})
 Tabs.Teleport:AddButton({Title = "Сохранить позицию", Callback = function()
-    local name = WaypointNameInput.Value
-    if name == "" then name = "Точка " .. (#Waypoints + 1) end
+    local name = WaypointNameInput.Value; if name == "" then name = "Точка " .. (#Waypoints + 1) end
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         table.insert(Waypoints, {Name = name, CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame})
-        local names = {}
-        for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end
-        WaypointDropdown:SetValues(names)
+        local names = {}; for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end; WaypointDropdown:SetValues(names)
     end
 end})
 Tabs.Teleport:AddButton({Title = "Телепорт к точке", Callback = function()
-    for _, wp in ipairs(Waypoints) do
-        if wp.Name == WaypointDropdown.Value then SafeTeleport(wp.CFrame); break end
-    end
+    for _, wp in ipairs(Waypoints) do if wp.Name == WaypointDropdown.Value then SafeTeleport(wp.CFrame); break end end
 end})
 Tabs.Teleport:AddButton({Title = "Удалить точку", Callback = function()
-    for i, wp in ipairs(Waypoints) do
-        if wp.Name == WaypointDropdown.Value then table.remove(Waypoints, i); break end
-    end
-    local names = {}
-    for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end
-    WaypointDropdown:SetValues(names)
+    for i, wp in ipairs(Waypoints) do if wp.Name == WaypointDropdown.Value then table.remove(Waypoints, i); break end end
+    local names = {}; for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end; WaypointDropdown:SetValues(names)
 end})
 
-Tabs.Teleport:AddSection("Click TP")
 Tabs.Teleport:AddToggle("ClickTP", {Title = "Click TP Tool", Default = false}):OnChanged(function(v)
     Options.ClickTP = v
     if v then
-        local tool = Instance.new("Tool", LocalPlayer.Backpack)
-        tool.Name = "Click TP"; tool.RequiresHandle = false
-        tool.Activated:Connect(function()
-            local mouse = LocalPlayer:GetMouse()
-            if mouse.Target then SafeTeleport(CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))) end
-        end)
+        local tool = Instance.new("Tool", LocalPlayer.Backpack); tool.Name = "Click TP"; tool.RequiresHandle = false
+        tool.Activated:Connect(function() local mouse = LocalPlayer:GetMouse(); if mouse.Target then SafeTeleport(CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))) end end)
     else
         for _, t in pairs(LocalPlayer.Backpack:GetChildren()) do if t.Name == "Click TP" then t:Destroy() end end
         if LocalPlayer.Character then for _, t in pairs(LocalPlayer.Character:GetChildren()) do if t.Name == "Click TP" then t:Destroy() end end end
@@ -195,12 +155,7 @@ Tabs.Visuals:AddColorpicker("ESPColor", {Title = "Глобальный цвет 
 Tabs.Visuals:AddToggle("FullBright", {Title = "FullBright", Default = false}):OnChanged(function(v) Options.FullBright = v end)
 
 -- [[ ЛОГИКА DRAWING ESP ]]
-local function CreateDrawing(type, props)
-    local obj = Drawing.new(type)
-    for k, v in pairs(props) do obj[k] = v end
-    return obj
-end
-
+local function CreateDrawing(type, props) local obj = Drawing.new(type); for k, v in pairs(props) do obj[k] = v end; return obj end
 local function GetBoundingBox(char)
     local cf, size = char:GetBoundingBox()
     local corners = {
@@ -211,11 +166,10 @@ local function GetBoundingBox(char)
     }
     local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
     local vis = false
-    for _, corner in ipairs(corners) do
-        local screenPos, onScreen = Camera:WorldToViewportPoint(corner)
+    for _, c in ipairs(corners) do
+        local sp, onScreen = Camera:WorldToViewportPoint(c)
         if onScreen then vis = true end
-        minX, minY = math.min(minX, screenPos.X), math.min(minY, screenPos.Y)
-        maxX, maxY = math.max(maxX, screenPos.X), math.max(maxY, screenPos.Y)
+        minX, minY = math.min(minX, sp.X), math.min(minY, sp.Y); maxX, maxY = math.max(maxX, sp.X), math.max(maxY, sp.Y)
     end
     if vis then return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY) end
     return nil, nil
@@ -232,63 +186,43 @@ local function UpdateESP(player)
         }
         for i = 1, 15 do table.insert(Drawings[player].Bones, CreateDrawing("Line", {Visible = false, Thickness = 1})) end
     end
-    
-    local d = Drawings[player]
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    
+    local d = Drawings[player]; local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart"); local hum = char and char:FindFirstChildOfClass("Humanoid")
     if char and root and hum and player ~= LocalPlayer and hum.Health > 0 then
-        local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
-        local dist = (root.Position - Camera.CFrame.Position).Magnitude
-        
+        local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position); local dist = (root.Position - Camera.CFrame.Position).Magnitude
         if onScreen then
             if Options.ESP_Boxes then
                 local pos, size = GetBoundingBox(char)
                 if pos and size then d.Box.Size = size; d.Box.Position = pos; d.Box.Color = Options.ESPColor; d.Box.Visible = true else d.Box.Visible = false end
             else d.Box.Visible = false end
-            
             if Options.ESP_Skeleton then
-                local connections = SkeletonConnections[hum.RigType.Name] or SkeletonConnections.R6
+                local conns = SkeletonConnections[hum.RigType.Name] or SkeletonConnections.R6
                 for i, bone in ipairs(d.Bones) do
-                    local conn = connections[i]
-                    if conn then
-                        local p1, p2 = char:FindFirstChild(conn[1]), char:FindFirstChild(conn[2])
-                        if p1 and p2 then
-                            local s1, vis1 = Camera:WorldToViewportPoint(p1.Position); local s2, vis2 = Camera:WorldToViewportPoint(p2.Position)
-                            if vis1 or vis2 then bone.From = Vector2.new(s1.X, s1.Y); bone.To = Vector2.new(s2.X, s2.Y); bone.Color = Options.ESPColor; bone.Visible = true else bone.Visible = false end
-                        else bone.Visible = false end
+                    local conn = conns[i]
+                    if conn and char:FindFirstChild(conn[1]) and char:FindFirstChild(conn[2]) then
+                        local s1, vis1 = Camera:WorldToViewportPoint(char[conn[1]].Position); local s2, vis2 = Camera:WorldToViewportPoint(char[conn[2]].Position)
+                        if vis1 or vis2 then bone.From = Vector2.new(s1.X, s1.Y); bone.To = Vector2.new(s2.X, s2.Y); bone.Color = Options.ESPColor; bone.Visible = true else bone.Visible = false end
                     else bone.Visible = false end
                 end
             else for _, bone in ipairs(d.Bones) do bone.Visible = false end end
-            
             if Options.ESP_Tracers then d.Tracer.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); d.Tracer.To = Vector2.new(rootPos.X, rootPos.Y); d.Tracer.Color = Options.ESPColor; d.Tracer.Visible = true else d.Tracer.Visible = false end
             if Options.ESP_Health then d.HealthText.Text = math.floor(hum.Health).." HP"; d.HealthText.Position = Vector2.new(rootPos.X, rootPos.Y - (2800/dist) - 15); d.HealthText.Color = Color3.fromRGB(255 - (hum.Health/hum.MaxHealth*255), hum.Health/hum.MaxHealth*255, 0); d.HealthText.Visible = true else d.HealthText.Visible = false end
             if Options.ESP_Distance then d.DistText.Text = math.floor(dist).."m"; d.DistText.Position = Vector2.new(rootPos.X, rootPos.Y + (2800/dist)); d.DistText.Visible = true else d.DistText.Visible = false end
         else
-            d.Box.Visible = false; d.Tracer.Visible = false; d.HealthText.Visible = false; d.DistText.Visible = false
-            for _, bone in ipairs(d.Bones) do bone.Visible = false end
+            d.Box.Visible = false; d.Tracer.Visible = false; d.HealthText.Visible = false; d.DistText.Visible = false; for _, bone in ipairs(d.Bones) do bone.Visible = false end
         end
     else
-        d.Box.Visible = false; d.Tracer.Visible = false; d.HealthText.Visible = false; d.DistText.Visible = false
-        for _, bone in ipairs(d.Bones) do bone.Visible = false end
+        d.Box.Visible = false; d.Tracer.Visible = false; d.HealthText.Visible = false; d.DistText.Visible = false; for _, bone in ipairs(d.Bones) do bone.Visible = false end
     end
 end
-
 RunService.RenderStepped:Connect(function() for _, p in pairs(Players:GetPlayers()) do UpdateESP(p) end end)
 Players.PlayerRemoving:Connect(function(p)
-    if Drawings[p] then
-        Drawings[p].Box:Remove(); Drawings[p].Tracer:Remove(); Drawings[p].HealthText:Remove(); Drawings[p].DistText:Remove()
-        for _, b in ipairs(Drawings[p].Bones) do b:Remove() end; Drawings[p] = nil
-    end
+    if Drawings[p] then Drawings[p].Box:Remove(); Drawings[p].Tracer:Remove(); Drawings[p].HealthText:Remove(); Drawings[p].DistText:Remove(); for _, b in ipairs(Drawings[p].Bones) do b:Remove() end; Drawings[p] = nil end
 end)
 
 -- [[ ГЛАВНЫЙ ЦИКЛ ]]
 RunService.Stepped:Connect(function()
-    local Char = LocalPlayer.Character
-    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-    
+    local Char = LocalPlayer.Character; local Hum = Char and Char:FindFirstChildOfClass("Humanoid"); local Root = Char and Char:FindFirstChild("HumanoidRootPart")
     if Hum then
         Hum.WalkSpeed = Options.SpeedEnabled and Options.SpeedValue or 16
         if Options.JumpEnabled then Hum.UseJumpPower = true; Hum.JumpPower = Options.JumpValue; Hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true) else Hum.JumpPower = 50 end
@@ -318,23 +252,40 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [[ НАСТРОЙКИ И СЕРВЕР ]]
-Tabs.Settings:AddSection("Инструменты")
-Tabs.Settings:AddButton({Title = "Запустить Dark Dex V4", Callback = function()
-    loadstring(game:HttpGet("https://gist.githubusercontent.com/dannythehacker/1781582ab545302f2b34afc4ec53e811/raw/ee5324771f017073fc30e640323ac2a9b3bfc550/dark%2520dex%2520v4"))()
-end})
+-- [[ НАСТРОЙКИ & УТИЛИТЫ ]]
+Tabs.Settings:AddSection("Утилиты (Dev Tools)")
+
+Tabs.Settings:AddButton({
+    Title = "Запустить Dark Dex V4",
+    Description = "Просмотр объектов игры (Explorer/Properties)",
+    Callback = function()
+        loadstring(game:HttpGet("https://gist.githubusercontent.com/dannythehacker/1781582ab545302f2b34afc4ec53e811/raw/ee5324771f017073fc30e640323ac2a9b3bfc550/dark%2520dex%2520v4"))()
+    end
+})
+
+Tabs.Settings:AddButton({
+    Title = "Запустить Hydroxide",
+    Description = "Мощный Remote Spy, Closure Spy и просмотр Upvalues",
+    Callback = function()
+        local owner = "Upbolt"
+        local branch = "revision"
+        local function webImport(file)
+            return loadstring(game:HttpGetAsync(("https://raw.githubusercontent.com/%s/Hydroxide/%s/%s.lua"):format(owner, branch, file)), file .. '.lua')()
+        end
+        webImport("init")
+        webImport("ui/main")
+    end
+})
 
 Tabs.Settings:AddSection("Управление сервером")
 Tabs.Settings:AddButton({Title = "Rejoin (Перезайти на этот же сервер)", Callback = function() 
     queue_tp(HubLoadstring)
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) 
 end})
-
 Tabs.Settings:AddButton({Title = "Server Hop (Сменить сервер на другой)", Callback = function()
     Fluent:Notify({Title = "Server Hop", Content = "Поиск сервера...", Duration = 3})
-    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
     pcall(function()
-        local data = HttpService:JSONDecode(game:HttpGet(url))
+        local data = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
         for _, server in ipairs(data.data) do
             if server.playing < server.maxPlayers and server.id ~= game.JobId then
                 queue_tp(HubLoadstring)
@@ -344,12 +295,30 @@ Tabs.Settings:AddButton({Title = "Server Hop (Сменить сервер на �
     end)
 end})
 
-Tabs.Settings:AddSection("Сброс")
-Tabs.Settings:AddButton({Title = "СБРОСИТЬ ВСЕ НАСТРОЙКИ", Callback = function()
-    Options.SpeedEnabled = false; Options.JumpEnabled = false; Options.Fly = false; Options.FlyToolActive = false; Options.GradualTP = false
-    Options.NoClip = false; Options.ESP_Boxes = false; Options.ESP_Tracers = false; Options.ESP_Health = false; Options.ESP_Distance = false; Options.ESP_Skeleton = false
-    Fluent:Notify({Title = "System", Content = "Всё отключено", Duration = 3})
-end})
+-- СЕКЦИЯ КОНФИГОВ И УДАЛЕНИЯ
+SaveManager:SetLibrary(Fluent)
+SaveManager:SetFolder("UniversalConfigs_V26")
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Tabs.Settings:AddButton({
+    Title = "🗑️ Удалить выбранный конфиг",
+    Description = "Полностью удаляет файл из папки",
+    Callback = function()
+        local configName = SaveManager.Options.SaveManager_ConfigList and SaveManager.Options.SaveManager_ConfigList.Value
+        if configName and configName ~= "" then
+            local filePath = SaveManager.Folder .. "/settings/" .. configName .. ".json"
+            if isfile(filePath) then
+                delfile(filePath)
+                SaveManager:RefreshConfigList()
+                Fluent:Notify({Title = "Успешно", Content = "Конфиг " .. configName .. " удален!", Duration = 3})
+            else
+                Fluent:Notify({Title = "Ошибка", Content = "Файл конфига не найден на диске.", Duration = 3})
+            end
+        else
+            Fluent:Notify({Title = "Ошибка", Content = "Сначала выбери конфиг в списке (Config list)!", Duration = 3})
+        end
+    end
+})
 
 Window:SelectTab(1)
-SaveManager:SetLibrary(Fluent); SaveManager:SetFolder("UniversalConfigs_V24"); SaveManager:BuildConfigSection(Tabs.Settings); SaveManager:LoadAutoloadConfig()
+SaveManager:LoadAutoloadConfig()
