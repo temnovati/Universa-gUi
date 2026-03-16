@@ -70,7 +70,7 @@ end
 
 -- [[ ИНТЕРФЕЙС ]]
 local Window = Fluent:CreateWindow({
-    Title = "Universal script", SubTitle = "Stable build v3",
+    Title = "Universal script", SubTitle = "Stable build",
     TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -258,7 +258,6 @@ Tabs.Settings:AddSection("Утилиты (Dev Tools)")
 
 Tabs.Settings:AddButton({
     Title = "Запустить Dark Dex V4",
-    Description = "Просмотр объектов игры (Explorer/Properties)",
     Callback = function()
         loadstring(game:HttpGet("https://gist.githubusercontent.com/dannythehacker/1781582ab545302f2b34afc4ec53e811/raw/ee5324771f017073fc30e640323ac2a9b3bfc550/dark%2520dex%2520v4"))()
     end
@@ -266,7 +265,6 @@ Tabs.Settings:AddButton({
 
 Tabs.Settings:AddButton({
     Title = "Запустить SimpleSpy",
-    Description = "Перехват RemoteEvents и RemoteFunctions",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"))()
     end
@@ -274,35 +272,39 @@ Tabs.Settings:AddButton({
 
 Tabs.Settings:AddSection("Управление сервером")
 Tabs.Settings:AddButton({Title = "Rejoin (Перезайти на этот же сервер)", Callback = function() 
-    queue_tp(HubLoadstring)
+    queue_tp(HubLoadstring) -- Ставим в очередь только по нажатию
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) 
 end})
+
 Tabs.Settings:AddButton({Title = "Server Hop (Сменить сервер на другой)", Callback = function()
     Fluent:Notify({Title = "Server Hop", Content = "Поиск сервера...", Duration = 3})
     pcall(function()
         local data = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
         for _, server in ipairs(data.data) do
             if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                queue_tp(HubLoadstring)
+                queue_tp(HubLoadstring) -- Ставим в очередь только если сервер найден
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer); break
             end
         end
     end)
 end})
 
--- [[ СЕКЦИЯ КОНФИГОВ И ИНТЕРФЕЙСА ]]
+-- [[ СЕКЦИЯ КОНФИГОВ И ИНТЕРФЕЙСА (ИСПРАВЛЕННАЯ) ]]
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
-SaveManager:SetFolder("UniversalConfigs_V29")
-InterfaceManager:SetFolder("UniversalConfigs_V29")
+-- ВАЖНО: ПРИВЯЗКА ОКНА (Исправляет ошибку 'clone nil')
+SaveManager:SetWindow(Window)
+InterfaceManager:SetWindow(Window)
+
+SaveManager:SetFolder("UniversalConfigs_V30")
+InterfaceManager:SetFolder("UniversalConfigs_V30")
 
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Tabs.Settings:AddButton({
-    Title = "🗑️ Удалить выбранный конфиг",
-    Description = "Полностью удаляет файл из папки",
+    Title = "Удалить конфиг",
     Callback = function()
         local configName = SaveManager.Options.SaveManager_ConfigList and SaveManager.Options.SaveManager_ConfigList.Value
         if configName and configName ~= "" then
