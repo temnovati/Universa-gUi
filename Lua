@@ -70,7 +70,7 @@ end
 
 -- [[ ИНТЕРФЕЙС ]]
 local Window = Fluent:CreateWindow({
-    Title = "Universal script", SubTitle = "Stable build",
+    Title = "Universal script", SubTitle = "Stable build v2",
     TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -264,17 +264,13 @@ Tabs.Settings:AddButton({
     end
 })
 
+-- ИСПРАВЛЕННЫЙ HYDROXIDE (ЖЕЛЕЗОБЕТОННЫЙ ЗАПУСК)
 Tabs.Settings:AddButton({
     Title = "Запустить Hydroxide",
     Description = "Remote Spy, Closure Spy и Upvalues",
     Callback = function()
-        local owner = "Upbolt"
-        local branch = "revision"
-        local function webImport(file)
-            return loadstring(game:HttpGetAsync(("https://raw.githubusercontent.com/%s/Hydroxide/%s/%s.lua"):format(owner, branch, file)), file .. '.lua')()
-        end
-        webImport("init")
-        webImport("ui/main")
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/init.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/ui/main.lua"))()
     end
 })
 
@@ -300,8 +296,8 @@ end})
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
-SaveManager:SetFolder("UniversalConfigs_V27")
-InterfaceManager:SetFolder("UniversalConfigs_V27")
+SaveManager:SetFolder("UniversalConfigs_V28")
+InterfaceManager:SetFolder("UniversalConfigs_V28")
 
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
