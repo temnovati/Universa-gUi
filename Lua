@@ -5,7 +5,7 @@ local HubLoadstring = [[
 
 local queue_tp = queue_on_teleport or queueonteleport or function() end
 
--- [[ ЗАГРУЗКА БИБЛИОТЕК (ОРИГИНАЛЬНЫЙ FLUENT - САМЫЙ СТАБИЛЬНЫЙ) ]]
+-- [[ ЗАГРУЗКА БИБЛИОТЕК (ОРИГИНАЛЬНЫЙ FLUENT) ]]
 local Fluent, SaveManager, InterfaceManager = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
 
 -- [[ СЕРВИСЫ ]]
@@ -28,7 +28,7 @@ local Options = {
     SpeedEnabled = false, SpeedValue = 16, JumpEnabled = false, JumpValue = 50,
     NoClip = false, Fly = false, FlyToolActive = false, FlySpeed = 50, FlySmoothness = 0.15,
     FullBright = false, TargetPlayer = nil, ClickTP = false,
-    GradualTP = false, TPSteps = 20, TPDelayMS = 50, -- Теперь в целых миллисекундах!
+    GradualTP = false, TPSteps = 20, TPDelayMS = 50,
     ESP_Boxes = false, ESP_Tracers = false, ESP_Health = false, ESP_Distance = false, ESP_Skeleton = false,
     ESPColor = Color3.fromRGB(255, 50, 50)
 }
@@ -60,7 +60,6 @@ local function SafeTeleport(targetCFrame)
         for i = 1, Options.TPSteps do
             if not char or not char:FindFirstChild("HumanoidRootPart") then break end
             root.CFrame = startCFrame:Lerp(targetCFrame, i / Options.TPSteps)
-            -- Переводим миллисекунды обратно в секунды для task.wait
             task.wait(Options.TPDelayMS / 1000)
         end
         if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.Anchored = wasAnchored end
@@ -102,7 +101,6 @@ end})
 Tabs.Teleport:AddSection("Anti-Cheat Bypass")
 Tabs.Teleport:AddToggle("GradualTP", {Title = "Постепенный ТП (Anti-Detect)", Default = false}):OnChanged(function(v) Options.GradualTP = v end)
 Tabs.Teleport:AddSlider("TPSteps", {Title = "Количество шагов", Default = 20, Min = 2, Max = 100, Rounding = 0, Callback = function(v) Options.TPSteps = v end})
--- ИСПРАВЛЕННЫЙ СЛАЙДЕР (Теперь целые числа, без крашей)
 Tabs.Teleport:AddSlider("TPDelay", {Title = "Задержка шагов (Милисекунды)", Default = 50, Min = 10, Max = 500, Rounding = 0, Callback = function(v) Options.TPDelayMS = v end})
 
 Tabs.Teleport:AddSection("Игроки")
@@ -255,7 +253,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [[ НАСТРОЙКИ И УТИЛИТЫ ]]
+-- [[ НАСТРОЙКИ & УТИЛИТЫ ]]
 Tabs.Settings:AddSection("Утилиты (Dev Tools)")
 
 Tabs.Settings:AddButton({
@@ -298,14 +296,11 @@ end})
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
-InterfaceManager:SetWindow(Window)
-SaveManager:SetWindow(Window)
-
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
 
-InterfaceManager:SetFolder("UniversalConfigs_V32")
-SaveManager:SetFolder("UniversalConfigs_V32/settings")
+InterfaceManager:SetFolder("UniversalConfigs")
+SaveManager:SetFolder("UniversalConfigs/settings")
 
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
