@@ -5,8 +5,10 @@ local HubLoadstring = [[
 
 local queue_tp = queue_on_teleport or queueonteleport or function() end
 
--- [[ ЗАГРУЗКА БИБЛИОТЕК (FluentPlus) ]]
-local Fluent, SaveManager, InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+-- [[ ЗАГРУЗКА БИБЛИОТЕК (ОРИГИНАЛЬНЫЙ FLUENT - САМЫЙ СТАБИЛЬНЫЙ) ]]
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 -- [[ СЕРВИСЫ ]]
 local Players = game:GetService("Players")
@@ -28,7 +30,7 @@ local Options = {
     SpeedEnabled = false, SpeedValue = 16, JumpEnabled = false, JumpValue = 50,
     NoClip = false, Fly = false, FlyToolActive = false, FlySpeed = 50, FlySmoothness = 0.15,
     FullBright = false, TargetPlayer = nil, ClickTP = false,
-    GradualTP = false, TPSteps = 20, TPDelay = 0.05,
+    GradualTP = false, TPSteps = 20, TPDelayMS = 50, -- Теперь в целых миллисекундах!
     ESP_Boxes = false, ESP_Tracers = false, ESP_Health = false, ESP_Distance = false, ESP_Skeleton = false,
     ESPColor = Color3.fromRGB(255, 50, 50)
 }
@@ -60,7 +62,8 @@ local function SafeTeleport(targetCFrame)
         for i = 1, Options.TPSteps do
             if not char or not char:FindFirstChild("HumanoidRootPart") then break end
             root.CFrame = startCFrame:Lerp(targetCFrame, i / Options.TPSteps)
-            task.wait(Options.TPDelay)
+            -- Переводим миллисекунды обратно в секунды для task.wait
+            task.wait(Options.TPDelayMS / 1000)
         end
         if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.Anchored = wasAnchored end
     else
@@ -101,7 +104,8 @@ end})
 Tabs.Teleport:AddSection("Anti-Cheat Bypass")
 Tabs.Teleport:AddToggle("GradualTP", {Title = "Постепенный ТП (Anti-Detect)", Default = false}):OnChanged(function(v) Options.GradualTP = v end)
 Tabs.Teleport:AddSlider("TPSteps", {Title = "Количество шагов", Default = 20, Min = 2, Max = 100, Rounding = 0, Callback = function(v) Options.TPSteps = v end})
-Tabs.Teleport:AddSlider("TPDelay", {Title = "Задержка между шагами", Default = 0.05, Min = 0.01, Max = 0.5, Rounding = 2, Callback = function(v) Options.TPDelay = v end})
+-- ИСПРАВЛЕННЫЙ СЛАЙДЕР (Теперь целые числа, без крашей)
+Tabs.Teleport:AddSlider("TPDelay", {Title = "Задержка шагов (Милисекунды)", Default = 50, Min = 10, Max = 500, Rounding = 0, Callback = function(v) Options.TPDelayMS = v end})
 
 Tabs.Teleport:AddSection("Игроки")
 local PlayerDropdown = Tabs.Teleport:AddDropdown("PlayerDrop", {Title = "Выбор игрока", Values = {}, Multi = false})
@@ -253,26 +257,29 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- [[ НАСТРОЙКИ & УТИЛИТЫ ]]
+-- [[ НАСТРОЙКИ И УТИЛИТЫ ]]
 Tabs.Settings:AddSection("Утилиты (Dev Tools)")
 
 Tabs.Settings:AddButton({
+    Title = "Запустить Infinite Yield",
+    Description = "Ультимативная админ-панель",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+    end
+})
+
+Tabs.Settings:AddButton({
     Title = "Запустить Dark Dex V4",
+    Description = "Просмотр объектов (Explorer)",
     Callback = function()
         loadstring(game:HttpGet("https://gist.githubusercontent.com/dannythehacker/1781582ab545302f2b34afc4ec53e811/raw/ee5324771f017073fc30e640323ac2a9b3bfc550/dark%2520dex%2520v4"))()
     end
 })
 
-Tabs.Settings:AddButton({
-    Title = "Запустить SimpleSpy",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"))()
-    end
-})
-
 Tabs.Settings:AddSection("Управление сервером")
+
 Tabs.Settings:AddButton({Title = "Rejoin (Перезайти на этот же сервер)", Callback = function() 
-    queue_tp(HubLoadstring) -- Ставим в очередь только по нажатию
+    queue_tp(HubLoadstring) 
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) 
 end})
 
@@ -282,23 +289,25 @@ Tabs.Settings:AddButton({Title = "Server Hop (Сменить сервер на �
         local data = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
         for _, server in ipairs(data.data) do
             if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                queue_tp(HubLoadstring) -- Ставим в очередь только если сервер найден
+                queue_tp(HubLoadstring)
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer); break
             end
         end
     end)
 end})
 
--- [[ СЕКЦИЯ КОНФИГОВ И ИНТЕРФЕЙСА (ИСПРАВЛЕННАЯ) ]]
+-- [[ СЕКЦИЯ КОНФИГОВ И ИНТЕРФЕЙСА ]]
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
--- ВАЖНО: ПРИВЯЗКА ОКНА (Исправляет ошибку 'clone nil')
-SaveManager:SetWindow(Window)
 InterfaceManager:SetWindow(Window)
+SaveManager:SetWindow(Window)
 
-SaveManager:SetFolder("UniversalConfigs_V30")
-InterfaceManager:SetFolder("UniversalConfigs_V30")
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+
+InterfaceManager:SetFolder("UniversalConfigs_V32")
+SaveManager:SetFolder("UniversalConfigs_V32/settings")
 
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
@@ -308,16 +317,16 @@ Tabs.Settings:AddButton({
     Callback = function()
         local configName = SaveManager.Options.SaveManager_ConfigList and SaveManager.Options.SaveManager_ConfigList.Value
         if configName and configName ~= "" then
-            local filePath = SaveManager.Folder .. "/settings/" .. configName .. ".json"
+            local filePath = SaveManager.Folder .. "/" .. configName .. ".json"
             if isfile(filePath) then
                 delfile(filePath)
                 SaveManager:RefreshConfigList()
-                Fluent:Notify({Title = "Успешно", Content = "Конфиг " .. configName .. " удален!", Duration = 3})
+                Fluent:Notify({Title = "Успешно", Content = "Конфиг удален!", Duration = 3})
             else
-                Fluent:Notify({Title = "Ошибка", Content = "Файл конфига не найден на диске.", Duration = 3})
+                Fluent:Notify({Title = "Ошибка", Content = "Файл не найден.", Duration = 3})
             end
         else
-            Fluent:Notify({Title = "Ошибка", Content = "Сначала выбери конфиг в списке (Config list)!", Duration = 3})
+            Fluent:Notify({Title = "Ошибка", Content = "Сначала выбери конфиг в списке!", Duration = 3})
         end
     end
 })
