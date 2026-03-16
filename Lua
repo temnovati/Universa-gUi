@@ -70,7 +70,7 @@ end
 
 -- [[ ИНТЕРФЕЙС ]]
 local Window = Fluent:CreateWindow({
-    Title = "Universal PRO", SubTitle = "v26.0 | FluentPlus & DevTools",
+    Title = "Universal script", SubTitle = "Stable build",
     TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -134,6 +134,7 @@ Tabs.Teleport:AddButton({Title = "Удалить точку", Callback = functio
     local names = {}; for _, wp in ipairs(Waypoints) do table.insert(names, wp.Name) end; WaypointDropdown:SetValues(names)
 end})
 
+Tabs.Teleport:AddSection("Click TP")
 Tabs.Teleport:AddToggle("ClickTP", {Title = "Click TP Tool", Default = false}):OnChanged(function(v)
     Options.ClickTP = v
     if v then
@@ -265,7 +266,7 @@ Tabs.Settings:AddButton({
 
 Tabs.Settings:AddButton({
     Title = "Запустить Hydroxide",
-    Description = "Мощный Remote Spy, Closure Spy и просмотр Upvalues",
+    Description = "Remote Spy, Closure Spy и Upvalues",
     Callback = function()
         local owner = "Upbolt"
         local branch = "revision"
@@ -295,14 +296,18 @@ Tabs.Settings:AddButton({Title = "Server Hop (Сменить сервер на �
     end)
 end})
 
--- СЕКЦИЯ КОНФИГОВ И УДАЛЕНИЯ
+-- [[ СЕКЦИЯ КОНФИГОВ И ИНТЕРФЕЙСА ]]
 SaveManager:SetLibrary(Fluent)
-SaveManager:SetFolder("UniversalConfigs_V26")
+InterfaceManager:SetLibrary(Fluent)
+
+SaveManager:SetFolder("UniversalConfigs_V27")
+InterfaceManager:SetFolder("UniversalConfigs_V27")
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Tabs.Settings:AddButton({
-    Title = "🗑️ Удалить выбранный конфиг",
-    Description = "Полностью удаляет файл из папки",
+    Title = "Удалить конфиг",
     Callback = function()
         local configName = SaveManager.Options.SaveManager_ConfigList and SaveManager.Options.SaveManager_ConfigList.Value
         if configName and configName ~= "" then
