@@ -70,7 +70,7 @@ end
 
 -- [[ ИНТЕРФЕЙС ]]
 local Window = Fluent:CreateWindow({
-    Title = "Universal script", SubTitle = "Stable build v2",
+    Title = "Universal script", SubTitle = "Stable build v3",
     TabWidth = 160, Size = UDim2.fromOffset(580, 460), Acrylic = true, Theme = "Dark", MinimizeKey = Enum.KeyCode.LeftControl
 })
 
@@ -264,13 +264,11 @@ Tabs.Settings:AddButton({
     end
 })
 
--- ИСПРАВЛЕННЫЙ HYDROXIDE (ЖЕЛЕЗОБЕТОННЫЙ ЗАПУСК)
 Tabs.Settings:AddButton({
-    Title = "Запустить Hydroxide",
-    Description = "Remote Spy, Closure Spy и Upvalues",
+    Title = "Запустить SimpleSpy",
+    Description = "Перехват RemoteEvents и RemoteFunctions",
     Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/init.lua"))()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/ui/main.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"))()
     end
 })
 
@@ -296,14 +294,15 @@ end})
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 
-SaveManager:SetFolder("UniversalConfigs_V28")
-InterfaceManager:SetFolder("UniversalConfigs_V28")
+SaveManager:SetFolder("UniversalConfigs_V29")
+InterfaceManager:SetFolder("UniversalConfigs_V29")
 
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 
 Tabs.Settings:AddButton({
-    Title = "Удалить конфиг",
+    Title = "🗑️ Удалить выбранный конфиг",
+    Description = "Полностью удаляет файл из папки",
     Callback = function()
         local configName = SaveManager.Options.SaveManager_ConfigList and SaveManager.Options.SaveManager_ConfigList.Value
         if configName and configName ~= "" then
