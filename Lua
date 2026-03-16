@@ -6,7 +6,9 @@ local HubLoadstring = [[
 local queue_tp = queue_on_teleport or queueonteleport or function() end
 
 -- [[ ЗАГРУЗКА БИБЛИОТЕК (ОРИГИНАЛЬНЫЙ FLUENT - САМЫЙ СТАБИЛЬНЫЙ) ]]
-local Fluent, SaveManager, InterfaceManager = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+local Fluent = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 -- [[ СЕРВИСЫ ]]
 local Players = game:GetService("Players")
