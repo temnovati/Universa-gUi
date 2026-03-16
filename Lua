@@ -5,8 +5,8 @@ local HubLoadstring = [[
 
 local queue_tp = queue_on_teleport or queueonteleport or function() end
 
--- [[ ЗАГРУЗКА БИБЛИОТЕК (ОРИГИНАЛЬНЫЙ FLUENT) ]]
-local Fluent, SaveManager, InterfaceManager = loadstring(Game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/Beta.lua"))()
+-- [[ ЗАГРУЗКА БИБЛИОТЕК (ОРИГИНАЛЬНЫЙ FLUENT - САМЫЙ СТАБИЛЬНЫЙ) ]]
+local Fluent, SaveManager, InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/discoart/FluentPlus/refs/heads/main/alpha.lua"))()
 
 -- [[ СЕРВИСЫ ]]
 local Players = game:GetService("Players")
@@ -113,6 +113,31 @@ Tabs.Teleport:AddButton({Title = "ТП к выбранному игроку", Ca
     if Options.TargetPlayer then
         local t = Players:FindFirstChild(Options.TargetPlayer)
         if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then SafeTeleport(t.Character.HumanoidRootPart.CFrame) end
+    end
+end})
+
+-- НОВАЯ СЕКЦИЯ: ТЕЛЕПОРТ ПО КООРДИНАТАМ
+Tabs.Teleport:AddSection("Телепорт по координатам")
+local CoordX = Tabs.Teleport:AddInput("CoordX", {Title = "X Координата", Default = "0", Numeric = true, Finished = false})
+local CoordY = Tabs.Teleport:AddInput("CoordY", {Title = "Y Координата", Default = "0", Numeric = true, Finished = false})
+local CoordZ = Tabs.Teleport:AddInput("CoordZ", {Title = "Z Координата", Default = "0", Numeric = true, Finished = false})
+
+Tabs.Teleport:AddButton({Title = "Телепортироваться", Callback = function()
+    local x = tonumber(CoordX.Value) or 0
+    local y = tonumber(CoordY.Value) or 0
+    local z = tonumber(CoordZ.Value) or 0
+    SafeTeleport(CFrame.new(x, y, z))
+    Fluent:Notify({Title = "Телепорт", Content = "Отправляемся на: " .. x .. ", " .. y .. ", " .. z, Duration = 3})
+end})
+
+-- ВЗЯТЬ ТЕКУЩИЕ КООРДИНАТЫ
+Tabs.Teleport:AddButton({Title = "Взять мои текущие координаты", Callback = function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = LocalPlayer.Character.HumanoidRootPart.Position
+        CoordX:SetValue(tostring(math.floor(pos.X)))
+        CoordY:SetValue(tostring(math.floor(pos.Y)))
+        CoordZ:SetValue(tostring(math.floor(pos.Z)))
+        Fluent:Notify({Title = "Координаты", Content = "Успешно скопированы!", Duration = 2})
     end
 end})
 
@@ -295,6 +320,9 @@ end})
 -- [[ СЕКЦИЯ КОНФИГОВ И ИНТЕРФЕЙСА ]]
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
+
+InterfaceManager:SetWindow(Window)
+SaveManager:SetWindow(Window)
 
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
